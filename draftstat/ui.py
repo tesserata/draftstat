@@ -14,15 +14,33 @@ body { background: var(--body-background-fill, #0d1117) !important; }
 .gradio-container { background: var(--body-background-fill, #0d1117) !important; }
 .contain { background: transparent !important; }
 
+/* app accent: drives slider fill + selected-tab underline (var --*-accent) */
+.gradio-container {
+    --slider-color: #7ed4ff !important;
+    --border-color-accent: #7ed4ff !important;
+    --color-accent: #7ed4ff !important;
+    --loader-color: #7ed4ff !important;
+    --border-color-accent-subdued: #7ed4ff !important;
+}
+input[type="range"] { accent-color: #7ed4ff; }
+
 /* hide bridge textboxes (kept in DOM so JS can reach them) */
 #ds-sel-wrap, #ds-text-wrap { display: none !important; }
 
-/* tabs: replace default orange accent with the Ocean primary */
-.tab-nav button.selected {
-    color: var(--primary-400) !important;
-    border-bottom-color: var(--primary-400) !important;
+/* tabs: accent in the app color */
+.tab-nav button.selected,
+[role="tab"].selected,
+[role="tab"][aria-selected="true"] {
+    color: #7ed4ff !important;
+    border-bottom-color: #7ed4ff !important;
 }
-.tab-nav button:hover { color: var(--primary-300) !important; }
+.tab-nav button.selected::after,
+[role="tab"].selected::after,
+[role="tab"][aria-selected="true"]::after {
+    background: #7ed4ff !important;
+}
+.tab-nav button:hover,
+[role="tab"]:hover { color: #a6e2ff !important; }
 
 /* word list rows */
 .ds-list { display: flex; flex-direction: column; gap: 0; }
@@ -58,7 +76,7 @@ body { background: var(--body-background-fill, #0d1117) !important; }
     background: #fff; transition: transform 0.2s;
 }
 #ds-normalize input[type="checkbox"]:checked {
-    background: var(--primary-500, #1f90a8);
+    background: #7ed4ff;
 }
 #ds-normalize input[type="checkbox"]:checked::before {
     transform: translateX(18px);
