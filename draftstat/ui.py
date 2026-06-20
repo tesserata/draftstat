@@ -120,12 +120,10 @@ def _parse_ignore(raw: str | None) -> frozenset[str]:
 
 
 def _js_str(value: str) -> str:
-    """Escape a Python string for safe embedding in a single-quoted JS literal."""
     return value.replace("\\", "\\\\").replace("'", "\\'")
 
 
 def _js_highlight(word: str) -> str:
-    """Self-contained inline onclick: set the highlight bridge (with nonce) and fire."""
     w = _js_str(word)
     return (
         "(function(){"
@@ -138,7 +136,6 @@ def _js_highlight(word: str) -> str:
 
 
 def _js_ignore(word: str, ignore_id: str) -> str:
-    """Self-contained inline onclick: append the word to an ignore textbox and fire."""
     w = _js_str(word)
     return (
         "(function(){"
