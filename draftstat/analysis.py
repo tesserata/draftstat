@@ -7,8 +7,8 @@ from functools import lru_cache
 import spacy
 from wordfreq import zipf_frequency
 
-from . import config
-from .highlight import to_segments
+from draftstat import config
+from draftstat.highlight import to_segments
 
 
 @lru_cache(maxsize=1)
