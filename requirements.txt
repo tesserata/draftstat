@@ -1,0 +1,5 @@
+gradio==6.19
+spacy==3.8.13
+wordfreq==3.1.1
+fastapi==0.138
+uvicorn[standard]==0.30

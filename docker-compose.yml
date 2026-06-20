@@ -1,0 +1,15 @@
+services:
+  draftstat:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+#    image: draftstat:latest
+    ports:
+      - "7860:7860"
+    restart: unless-stopped
+    container_name: draftstat
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
