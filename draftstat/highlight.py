@@ -5,11 +5,16 @@ import html
 from draftstat import config
 
 
-def to_segments(doc, score_by_lemma: dict[str, float]) -> list[tuple[str, str | None]]:
+def to_segments(
+    doc, normalize: bool = True
+) -> list[tuple[str, str | None]]:
     segments: list[tuple[str, str | None]] = []
     for token in doc:
-        lemma = token.lemma_.lower() if token.is_alpha else None
-        segments.append((token.text_with_ws, lemma))
+        if token.is_alpha:
+            key = token.lemma_.lower() if normalize else token.text.lower()
+        else:
+            key = None
+        segments.append((token.text_with_ws, key))
     return segments
 
 

@@ -44,9 +44,27 @@ body { background: var(--body-background-fill, #0d1117) !important; }
     line-height: 1;
 }
 .ds-x:hover { opacity: 1; }
+
+#ds-normalize input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none;
+    position: relative; cursor: pointer;
+    width: 40px; height: 22px; border-radius: 22px;
+    background: var(--neutral-600, #4b5563);
+    border: none; transition: background 0.2s; flex: none;
+}
+#ds-normalize input[type="checkbox"]::before {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; transition: transform 0.2s;
+}
+#ds-normalize input[type="checkbox"]:checked {
+    background: var(--primary-500, #1f90a8);
+}
+#ds-normalize input[type="checkbox"]:checked::before {
+    transform: translateX(18px);
+}
 """
 
-# Global helpers: keep the hidden Gradio textboxes in sync with the editable div.
 _JS = """
 () => {
     function fire(el, value) {
@@ -177,23 +195,24 @@ def _lists(result):
     return flagged, adverbs
 
 
-def _compute(text: str, ceiling: float, ignore_words_raw: str, ignore_adverbs_raw: str):
+def _compute(text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize):
     return analyze(
         text or "",
         ceiling=float(ceiling),
         ignore_words=_parse_ignore(ignore_words_raw),
         ignore_adverbs=_parse_ignore(ignore_adverbs_raw),
+        normalize=bool(normalize),
     )
 
 
-def _analyze(text, ceiling, ignore_words_raw, ignore_adverbs_raw):
-    result = _compute(text, ceiling, ignore_words_raw, ignore_adverbs_raw)
+def _analyze(text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize):
+    result = _compute(text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize)
     flagged, adverbs = _lists(result)
     return flagged, adverbs, result.segments
 
 
-def _load(text, ceiling, ignore_words_raw, ignore_adverbs_raw):
-    result = _compute(text, ceiling, ignore_words_raw, ignore_adverbs_raw)
+def _load(text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize):
+    result = _compute(text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize)
     flagged, adverbs = _lists(result)
     return to_html(result.segments), flagged, adverbs, result.segments
 
@@ -218,6 +237,12 @@ def build_demo() -> gr.Blocks:
                 manuscript = gr.HTML()
 
             with gr.Column(scale=1):
+                normalize = gr.Checkbox(
+                    value=True,
+                    label="Normalize forms",
+                    info="Group different word forms into one occurrence",
+                    elem_id="ds-normalize",
+                )
                 with gr.Tabs():
                     with gr.TabItem("Word frequency"):
                         ceiling = gr.Slider(
@@ -248,7 +273,7 @@ def build_demo() -> gr.Blocks:
         with gr.Row(elem_id="ds-sel-wrap"):
             sel_word = gr.Textbox(elem_id="ds-sel", label="")
 
-        analysis_inputs = [ds_text, ceiling, ignore_words, ignore_adverbs]
+        analysis_inputs = [ds_text, ceiling, ignore_words, ignore_adverbs, normalize]
         list_outputs = [flagged_html, adverb_html, segments_state]
 
         for component in analysis_inputs:

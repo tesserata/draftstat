@@ -41,11 +41,16 @@ def _zipf(lemma: str) -> float:
     return z if z > 0 else config.UNKNOWN_ZIPF
 
 
+def _key(token, normalize: bool) -> str:
+    return token.lemma_.lower() if normalize else token.text.lower()
+
+
 def analyze(
     text: str,
     ceiling: float = config.DEFAULT_CEILING,
     ignore_words: frozenset[str] = frozenset(),
     ignore_adverbs: frozenset[str] = frozenset(),
+    normalize: bool = True,
 ) -> AnalysisResult:
     doc = _parse(text)
 
@@ -55,30 +60,28 @@ def analyze(
     for token in doc:
         if not token.is_alpha:
             continue
-        lemma = token.lemma_.lower()
-        if len(lemma) < config.MIN_WORD_LEN:
+        key = _key(token, normalize)
+        if len(key) < config.MIN_WORD_LEN:
             continue
-        counts[lemma] += 1
-        if token.pos_ == "ADV" and lemma not in ignore_adverbs:
-            adverb_counts[lemma] += 1
+        counts[key] += 1
+        if token.pos_ == "ADV" and key not in ignore_adverbs:
+            adverb_counts[key] += 1
 
     flagged: list[Flagged] = []
-    score_by_lemma: dict[str, float] = {}
-    for lemma, count in counts.items():
-        if lemma in ignore_words or count < config.MIN_COUNT:
+    for word, count in counts.items():
+        if word in ignore_words or count < config.MIN_COUNT:
             continue
-        zipf = _zipf(lemma)
+        zipf = _zipf(word)
         rarity = ceiling - zipf
         if rarity <= 0:
             continue
         score = round(count * rarity, 2)
         if score < config.MIN_SCORE:
             continue
-        flagged.append(Flagged(lemma, count, round(zipf, 2), score))
-        score_by_lemma[lemma] = score
+        flagged.append(Flagged(word, count, round(zipf, 2), score))
 
     flagged.sort(key=lambda f: (f.count, f.score), reverse=True)
 
     adverbs = sorted(adverb_counts.items(), key=lambda x: x[1], reverse=True)
-    segments = to_segments(doc, score_by_lemma)
+    segments = to_segments(doc, normalize=normalize)
     return AnalysisResult(flagged=flagged, adverbs=adverbs, segments=segments)
