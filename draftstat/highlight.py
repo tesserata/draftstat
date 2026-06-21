@@ -4,14 +4,19 @@ import html
 
 from draftstat import config
 
+_NOUN_POS = {"NOUN", "PROPN"}
+
+
+def token_key(token, normalize: bool) -> str:
+    if normalize or token.pos_ in _NOUN_POS:
+        return token.lemma_.lower()
+    return token.text.lower()
+
 
 def to_segments(doc, normalize: bool = True) -> list[tuple[str, str | None]]:
     segments: list[tuple[str, str | None]] = []
     for token in doc:
-        if token.is_alpha:
-            key = token.lemma_.lower() if normalize else token.text.lower()
-        else:
-            key = None
+        key = token_key(token, normalize) if token.is_alpha else None
         segments.append((token.text_with_ws, key))
     return segments
 

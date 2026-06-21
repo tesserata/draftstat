@@ -8,7 +8,7 @@ import spacy
 from wordfreq import zipf_frequency
 
 from draftstat import config
-from draftstat.highlight import to_segments
+from draftstat.highlight import to_segments, token_key
 
 
 @lru_cache(maxsize=1)
@@ -41,10 +41,6 @@ def _zipf(lemma: str) -> float:
     return z if z > 0 else config.UNKNOWN_ZIPF
 
 
-def _key(token, normalize: bool) -> str:
-    return token.lemma_.lower() if normalize else token.text.lower()
-
-
 def analyze(
     text: str,
     ceiling: float = config.DEFAULT_CEILING,
@@ -61,7 +57,7 @@ def analyze(
     for token in doc:
         if not token.is_alpha:
             continue
-        key = _key(token, normalize)
+        key = token_key(token, normalize)
         if len(key) < config.MIN_WORD_LEN:
             continue
         counts[key] += 1
