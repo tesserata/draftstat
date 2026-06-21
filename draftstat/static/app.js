@@ -3,9 +3,14 @@
         el.value = value;
         el.dispatchEvent(new Event('input', { bubbles: true }));
     }
+    let syncTimer = null;
     window.dsSyncText = (div) => {
-        const t = document.querySelector('#ds-text textarea');
-        if (t) fire(t, div.innerText);
+        const text = div.innerText;
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(() => {
+            const t = document.querySelector('#ds-text textarea');
+            if (t) fire(t, text);
+        }, 400);
     };
     function caretOffset(div) {
         const sel = window.getSelection();
