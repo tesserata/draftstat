@@ -81,6 +81,25 @@ input[type="range"] { accent-color: #7ed4ff; }
 #ds-normalize input[type="checkbox"]:checked::before {
     transform: translateX(18px);
 }
+
+#ds-filter-adverbs input[type="checkbox"] {
+    appearance: none; -webkit-appearance: none;
+    position: relative; cursor: pointer;
+    width: 40px; height: 22px; border-radius: 22px;
+    background: var(--neutral-600, #4b5563);
+    border: none; transition: background 0.2s; flex: none;
+}
+#ds-filter-adverbs input[type="checkbox"]::before {
+    content: ""; position: absolute; top: 2px; left: 2px;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; transition: transform 0.2s;
+}
+#ds-filter-adverbs input[type="checkbox"]:checked {
+    background: #7ed4ff;
+}
+#ds-filter-adverbs input[type="checkbox"]:checked::before {
+    transform: translateX(18px);
+}
 """
 
 _JS = """
@@ -152,7 +171,9 @@ _JS = """
 def _parse_ignore(raw: str | None) -> frozenset[str]:
     if not raw:
         return frozenset()
-    return frozenset(w.strip().lower() for w in raw.replace("\n", ",").split(",") if w.strip())
+    return frozenset(
+        w.strip().lower() for w in raw.replace("\n", ",").split(",") if w.strip()
+    )
 
 
 def _js_str(value: str) -> str:
@@ -198,7 +219,7 @@ def _word_list_html(rows: list, ignore_id: str) -> str:
             f'<button class="ds-word" onclick="{hl}">{w}</button>'
             f'<span class="ds-count">{count}</span>'
             f'<button class="ds-x" onclick="{ig}" title="ignore">×</button>'
-            f'</div>'
+            f"</div>"
         )
     return '<div class="ds-list">' + "".join(parts) + "</div>"
 
@@ -213,24 +234,35 @@ def _lists(result):
     return flagged, adverbs
 
 
-def _compute(text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize):
+def _compute(
+    text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize, filter_adverbs
+):
     return analyze(
         text or "",
         ceiling=float(ceiling),
         ignore_words=_parse_ignore(ignore_words_raw),
         ignore_adverbs=_parse_ignore(ignore_adverbs_raw),
         normalize=bool(normalize),
+        filter_adverbs=bool(filter_adverbs),
     )
 
 
-def _analyze(text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize):
-    result = _compute(text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize)
+def _analyze(
+    text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize, filter_adverbs
+):
+    result = _compute(
+        text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize, filter_adverbs
+    )
     flagged, adverbs = _lists(result)
     return flagged, adverbs, result.segments
 
 
-def _load(text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize):
-    result = _compute(text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize)
+def _load(
+    text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize, filter_adverbs
+):
+    result = _compute(
+        text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize, filter_adverbs
+    )
     flagged, adverbs = _lists(result)
     return to_html(result.segments), flagged, adverbs, result.segments
 
@@ -255,16 +287,17 @@ def build_demo() -> gr.Blocks:
                 manuscript = gr.HTML()
 
             with gr.Column(scale=1):
-                normalize = gr.Checkbox(
-                    value=True,
-                    label="Normalize forms",
-                    info="Group different word forms into one occurrence",
-                    elem_id="ds-normalize",
-                )
                 with gr.Tabs():
                     with gr.TabItem("Word frequency"):
+                        normalize = gr.Checkbox(
+                            value=True,
+                            label="Normalize forms",
+                            info="Group different word forms into one occurrence",
+                            elem_id="ds-normalize",
+                        )
                         ceiling = gr.Slider(
-                            2.0, 7.0,
+                            2.0,
+                            7.0,
                             value=config.DEFAULT_CEILING,
                             step=0.1,
                             label="Rarity (Rare → Common)",
@@ -278,6 +311,12 @@ def build_demo() -> gr.Blocks:
                         flagged_html = gr.HTML()
 
                     with gr.TabItem("Adverbs"):
+                        filter_adverbs = gr.Checkbox(
+                            value=True,
+                            label="Filter adverbs",
+                            info='Only count adverbs ending with "-ly"',
+                            elem_id="ds-filter-adverbs",
+                        )
                         ignore_adverbs = gr.Textbox(
                             label="Ignore adverbs",
                             lines=1,
@@ -291,7 +330,14 @@ def build_demo() -> gr.Blocks:
         with gr.Row(elem_id="ds-sel-wrap"):
             sel_word = gr.Textbox(elem_id="ds-sel", label="")
 
-        analysis_inputs = [ds_text, ceiling, ignore_words, ignore_adverbs, normalize]
+        analysis_inputs = [
+            ds_text,
+            ceiling,
+            ignore_words,
+            ignore_adverbs,
+            normalize,
+            filter_adverbs,
+        ]
         list_outputs = [flagged_html, adverb_html, segments_state]
 
         for component in analysis_inputs:
@@ -307,6 +353,4 @@ def build_demo() -> gr.Blocks:
 def attach(app, path: str = "/"):
     demo = build_demo()
     demo.queue()
-    return gr.mount_gradio_app(
-        app, demo, path=path, theme=THEME, css=_CSS, js=_JS
-    )
+    return gr.mount_gradio_app(app, demo, path=path, theme=THEME, css=_CSS, js=_JS)

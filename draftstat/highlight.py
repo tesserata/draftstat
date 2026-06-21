@@ -5,9 +5,7 @@ import html
 from draftstat import config
 
 
-def to_segments(
-    doc, normalize: bool = True
-) -> list[tuple[str, str | None]]:
+def to_segments(doc, normalize: bool = True) -> list[tuple[str, str | None]]:
     segments: list[tuple[str, str | None]] = []
     for token in doc:
         if token.is_alpha:
@@ -39,9 +37,9 @@ def to_html(
     body = "".join(parts)
     nav = _nav_bar(sel, hits) if sel else ""
     autoscroll = (
-        '<img src="x" alt="" style="display:none" '
-        f'onerror="{_NAV_JS}(1)">'
-        if sel and hits else ""
+        '<img src="x" alt="" style="display:none" ' f'onerror="{_NAV_JS}(1)">'
+        if sel and hits
+        else ""
     )
     oninput = (
         "(function(d){"
@@ -51,17 +49,17 @@ def to_html(
     )
     onbeforeinput = "if(window.dsUnwrap)window.dsUnwrap(this)"
     return (
-        f'<div>{nav}'
+        f"<div>{nav}"
         f'<div id="ds-manuscript" contenteditable="plaintext-only" spellcheck="false" '
         f'oninput="{html.escape(oninput, quote=True)}" '
         f'onbeforeinput="{html.escape(onbeforeinput, quote=True)}" '
         f'style="font-family:Georgia,serif;font-size:1.05em;'
-        f'line-height:1.85;white-space:pre-wrap;padding:12px;border-radius:8px;'
-        f'min-height:200px;max-height:58vh;overflow-y:auto;outline:none;'
-        f'background:var(--input-background-fill);'
-        f'border:1px solid var(--border-color-primary);'
+        f"line-height:1.85;white-space:pre-wrap;padding:12px;border-radius:8px;"
+        f"min-height:200px;max-height:58vh;overflow-y:auto;outline:none;"
+        f"background:var(--input-background-fill);"
+        f"border:1px solid var(--border-color-primary);"
         f'color:var(--body-text-color)">{autoscroll}{body}</div>'
-        f'</div>'
+        f"</div>"
     )
 
 
@@ -92,12 +90,12 @@ def _nav_bar(word: str, hits: int) -> str:
         f'occurrence{"s" if hits != 1 else ""}</span>'
         f'<button onclick="{_NAV_JS}(-1)" '
         'style="cursor:pointer;background:var(--button-secondary-background-fill);'
-        'border:1px solid var(--border-color-accent);color:var(--body-text-color);'
+        "border:1px solid var(--border-color-accent);color:var(--body-text-color);"
         'border-radius:4px;padding:1px 8px">‹ prev</button>'
         '<span id="ds-hit-counter" style="opacity:0.6;min-width:48px;text-align:center">—</span>'
         f'<button onclick="{_NAV_JS}(1)" '
         'style="cursor:pointer;background:var(--button-secondary-background-fill);'
-        'border:1px solid var(--border-color-accent);color:var(--body-text-color);'
+        "border:1px solid var(--border-color-accent);color:var(--body-text-color);"
         'border-radius:4px;padding:1px 8px">next ›</button>'
-        '</div>'
+        "</div>"
     )

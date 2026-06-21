@@ -51,6 +51,7 @@ def analyze(
     ignore_words: frozenset[str] = frozenset(),
     ignore_adverbs: frozenset[str] = frozenset(),
     normalize: bool = True,
+    filter_adverbs: bool = True,
 ) -> AnalysisResult:
     doc = _parse(text)
 
@@ -64,7 +65,11 @@ def analyze(
         if len(key) < config.MIN_WORD_LEN:
             continue
         counts[key] += 1
-        if token.pos_ == "ADV" and key not in ignore_adverbs:
+        if (
+            token.pos_ == "ADV"
+            and key not in ignore_adverbs
+            and ((filter_adverbs and key.endswith("ly")) or not filter_adverbs)
+        ):
             adverb_counts[key] += 1
 
     flagged: list[Flagged] = []
