@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import html as _html
+from pathlib import Path
 
 import gradio as gr
 
@@ -8,164 +9,9 @@ from draftstat import config
 from draftstat.analysis import analyze
 from draftstat.highlight import to_html
 
-_CSS = """
-footer { visibility: hidden; }
-body { background: var(--body-background-fill, #0d1117) !important; }
-.gradio-container { background: var(--body-background-fill, #0d1117) !important; }
-.contain { background: transparent !important; }
-
-/* app accent: drives slider fill + selected-tab underline (var --*-accent) */
-.gradio-container {
-    --slider-color: #7ed4ff !important;
-    --border-color-accent: #7ed4ff !important;
-    --color-accent: #7ed4ff !important;
-    --loader-color: #7ed4ff !important;
-    --border-color-accent-subdued: #7ed4ff !important;
-}
-input[type="range"] { accent-color: #7ed4ff; }
-
-/* hide bridge textboxes (kept in DOM so JS can reach them) */
-#ds-sel-wrap, #ds-text-wrap { display: none !important; }
-
-/* tabs: accent in the app color */
-.tab-nav button.selected,
-[role="tab"].selected,
-[role="tab"][aria-selected="true"] {
-    color: #7ed4ff !important;
-    border-bottom-color: #7ed4ff !important;
-}
-.tab-nav button.selected::after,
-[role="tab"].selected::after,
-[role="tab"][aria-selected="true"]::after {
-    background: #7ed4ff !important;
-}
-.tab-nav button:hover,
-[role="tab"]:hover { color: #a6e2ff !important; }
-
-/* word list rows */
-.ds-list { display: flex; flex-direction: column; gap: 0; }
-.ds-row {
-    display: flex; align-items: center; gap: 8px;
-    padding: 4px 6px; border-radius: 4px;
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-}
-.ds-row:hover { background: rgba(255,255,255,0.05); }
-.ds-word {
-    flex: 1; text-align: left; background: none; border: none;
-    cursor: pointer; font-size: 0.9em; color: inherit; padding: 0;
-}
-.ds-word:hover { text-decoration: underline; }
-.ds-count { font-size: 0.8em; opacity: 0.5; min-width: 20px; text-align: right; }
-.ds-x {
-    background: none; border: none; cursor: pointer;
-    font-size: 1em; opacity: 0.4; padding: 0 2px; color: inherit;
-    line-height: 1;
-}
-.ds-x:hover { opacity: 1; }
-
-#ds-normalize input[type="checkbox"] {
-    appearance: none; -webkit-appearance: none;
-    position: relative; cursor: pointer;
-    width: 40px; height: 22px; border-radius: 22px;
-    background: var(--neutral-600, #4b5563);
-    border: none; transition: background 0.2s; flex: none;
-}
-#ds-normalize input[type="checkbox"]::before {
-    content: ""; position: absolute; top: 2px; left: 2px;
-    width: 18px; height: 18px; border-radius: 50%;
-    background: #fff; transition: transform 0.2s;
-}
-#ds-normalize input[type="checkbox"]:checked {
-    background: #7ed4ff;
-}
-#ds-normalize input[type="checkbox"]:checked::before {
-    transform: translateX(18px);
-}
-
-#ds-filter-adverbs input[type="checkbox"] {
-    appearance: none; -webkit-appearance: none;
-    position: relative; cursor: pointer;
-    width: 40px; height: 22px; border-radius: 22px;
-    background: var(--neutral-600, #4b5563);
-    border: none; transition: background 0.2s; flex: none;
-}
-#ds-filter-adverbs input[type="checkbox"]::before {
-    content: ""; position: absolute; top: 2px; left: 2px;
-    width: 18px; height: 18px; border-radius: 50%;
-    background: #fff; transition: transform 0.2s;
-}
-#ds-filter-adverbs input[type="checkbox"]:checked {
-    background: #7ed4ff;
-}
-#ds-filter-adverbs input[type="checkbox"]:checked::before {
-    transform: translateX(18px);
-}
-"""
-
-_JS = """
-() => {
-    function fire(el, value) {
-        el.value = value;
-        el.dispatchEvent(new Event('input', { bubbles: true }));
-    }
-    // push the editable div's plain text into the hidden source textbox -> re-analyze
-    window.dsSyncText = (div) => {
-        const t = document.querySelector('#ds-text textarea');
-        if (t) fire(t, div.innerText);
-    };
-    // caret position as a character offset within the div
-    function caretOffset(div) {
-        const sel = window.getSelection();
-        if (!sel.rangeCount) return null;
-        const r = sel.getRangeAt(0).cloneRange();
-        const pre = r.cloneRange();
-        pre.selectNodeContents(div);
-        pre.setEnd(r.endContainer, r.endOffset);
-        return pre.toString().length;
-    }
-    function setCaret(div, offset) {
-        const walk = document.createTreeWalker(div, NodeFilter.SHOW_TEXT);
-        let n = 0, node;
-        while ((node = walk.nextNode())) {
-            const len = node.textContent.length;
-            if (n + len >= offset) {
-                const r = document.createRange();
-                r.setStart(node, offset - n);
-                r.collapse(true);
-                const s = window.getSelection();
-                s.removeAllRanges();
-                s.addRange(r);
-                return;
-            }
-            n += len;
-        }
-    }
-    // strip highlight <mark>s before an edit lands, preserving the caret
-    window.dsUnwrap = (div) => {
-        const marks = div.querySelectorAll('mark.ds-hit');
-        if (!marks.length) return;
-        const off = caretOffset(div);
-        marks.forEach(m => m.replaceWith(document.createTextNode(m.textContent)));
-        div.normalize();
-        if (off != null) setCaret(div, off);
-        const sel = document.querySelector('#ds-sel textarea');
-        if (sel) sel.value = '';  // clear selection state silently
-    };
-    // word clicked in a list -> trigger the lemma-aware highlight.
-    // a nonce guarantees the value always changes, so re-clicking the same word re-fires.
-    window.dsHighlight = (word) => {
-        const e = document.querySelector('#ds-sel textarea');
-        if (e) fire(e, word + '\\u0000' + Date.now());
-    };
-    window.dsIgnore = (word, inputId) => {
-        const e = document.querySelector('#' + inputId + ' textarea');
-        if (!e) return;
-        const parts = e.value ? e.value.split(',').map(s => s.trim()).filter(Boolean) : [];
-        if (!parts.includes(word)) parts.push(word);
-        fire(e, parts.join(', '));
-    };
-}
-"""
+_STATIC = Path(__file__).parent / "static"
+_CSS = (_STATIC / "styles.css").read_text(encoding="utf-8")
+_JS = (_STATIC / "app.js").read_text(encoding="utf-8")
 
 
 def _parse_ignore(raw: str | None) -> frozenset[str]:
