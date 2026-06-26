@@ -1,4 +1,6 @@
-() => {
+// Injected into <head> as a self-running script (see ui.attach). Defines the
+// window.ds* helpers that the inline HTML handlers call.
+(() => {
     function fire(el, value) {
         el.value = value;
         el.dispatchEvent(new Event('input', { bubbles: true }));
@@ -52,6 +54,22 @@
         const e = document.querySelector('#ds-sel textarea');
         if (e) fire(e, word + String.fromCharCode(0) + Date.now());
     };
+    window.dsNav = (d) => {
+        const c = document.getElementById('ds-manuscript');
+        if (!c) return;
+        const hits = c.querySelectorAll('.ds-hit');
+        if (!hits.length) return;
+        let i = parseInt(c.dataset.hit || '-1', 10) + d;
+        if (i >= hits.length) i = 0;
+        if (i < 0) i = hits.length - 1;
+        c.dataset.hit = i;
+        hits.forEach(h => { h.style.outline = ''; });
+        const t = hits[i];
+        t.style.outline = '2px solid #f0c040';
+        t.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const lbl = document.getElementById('ds-hit-counter');
+        if (lbl) lbl.textContent = (i + 1) + ' / ' + hits.length;
+    };
     window.dsIgnore = (word, inputId) => {
         const e = document.querySelector('#' + inputId + ' textarea');
         if (!e) return;
@@ -59,4 +77,4 @@
         if (!parts.includes(word)) parts.push(word);
         fire(e, parts.join(', '));
     };
-}
+})();

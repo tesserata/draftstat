@@ -22,34 +22,8 @@ def _parse_ignore(raw: str | None) -> frozenset[str]:
     )
 
 
-def _js_str(value: str) -> str:
+def _js_arg(value: str) -> str:
     return value.replace("\\", "\\\\").replace("'", "\\'")
-
-
-def _js_highlight(word: str) -> str:
-    w = _js_str(word)
-    return (
-        "(function(){"
-        "var e=document.querySelector('#ds-sel textarea');"
-        "if(!e)return;"
-        f"e.value='{w}'+String.fromCharCode(0)+Date.now();"
-        "e.dispatchEvent(new Event('input',{bubbles:true}));"
-        "})()"
-    )
-
-
-def _js_ignore(word: str, ignore_id: str) -> str:
-    w = _js_str(word)
-    return (
-        "(function(){"
-        f"var e=document.querySelector('#{ignore_id} textarea');"
-        "if(!e)return;"
-        "var c=e.value?e.value.split(',').map(function(x){return x.trim();}).filter(Boolean):[];"
-        f"if(c.indexOf('{w}')<0)c.push('{w}');"
-        "e.value=c.join(', ');"
-        "e.dispatchEvent(new Event('input',{bubbles:true}));"
-        "})()"
-    )
 
 
 def _word_list_html(rows: list, ignore_id: str) -> str:
@@ -58,8 +32,9 @@ def _word_list_html(rows: list, ignore_id: str) -> str:
     parts = []
     for word, count in rows:
         w = _html.escape(word)
-        hl = _html.escape(_js_highlight(word), quote=True)
-        ig = _html.escape(_js_ignore(word, ignore_id), quote=True)
+        arg = _js_arg(word)
+        hl = _html.escape(f"dsHighlight('{arg}')", quote=True)
+        ig = _html.escape(f"dsIgnore('{arg}', '{ignore_id}')", quote=True)
         parts.append(
             f'<div class="ds-row">'
             f'<button class="ds-word" onclick="{hl}">{w}</button>'
@@ -218,4 +193,5 @@ def build_demo() -> gr.Blocks:
 def attach(app, path: str = "/"):
     demo = build_demo()
     demo.queue()
-    return gr.mount_gradio_app(app, demo, path=path, theme=THEME, css=_CSS, js=_JS)
+    head = f"<script>{_JS}</script>"
+    return gr.mount_gradio_app(app, demo, path=path, theme=THEME, css=_CSS, head=head)
