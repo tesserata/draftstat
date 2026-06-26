@@ -77,40 +77,49 @@ def _lists(result):
     adverbs = _word_list_html(
         [[w, c] for w, c in result.adverbs[:10]], "ds-ignore-adverbs"
     )
-    return flagged, adverbs
+    filters = _word_list_html(
+        [[w, c] for w, c in result.filters[:10]], "ds-ignore-filters"
+    )
+    return flagged, adverbs, filters
 
 
 def _compute(
-    text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize, filter_adverbs
+    text, ceiling, ignore_words_raw, ignore_adverbs_raw, ignore_filters_raw,
+    normalize, filter_adverbs,
 ):
     return analyze(
         text or "",
         ceiling=float(ceiling),
         ignore_words=_parse_ignore(ignore_words_raw),
         ignore_adverbs=_parse_ignore(ignore_adverbs_raw),
+        ignore_filters=_parse_ignore(ignore_filters_raw),
         normalize=bool(normalize),
         filter_adverbs=bool(filter_adverbs),
     )
 
 
 def _analyze(
-    text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize, filter_adverbs
+    text, ceiling, ignore_words_raw, ignore_adverbs_raw, ignore_filters_raw,
+    normalize, filter_adverbs,
 ):
     result = _compute(
-        text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize, filter_adverbs
+        text, ceiling, ignore_words_raw, ignore_adverbs_raw, ignore_filters_raw,
+        normalize, filter_adverbs,
     )
-    flagged, adverbs = _lists(result)
-    return flagged, adverbs, result.segments
+    flagged, adverbs, filters = _lists(result)
+    return flagged, adverbs, filters, result.segments
 
 
 def _load(
-    text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize, filter_adverbs
+    text, ceiling, ignore_words_raw, ignore_adverbs_raw, ignore_filters_raw,
+    normalize, filter_adverbs,
 ):
     result = _compute(
-        text, ceiling, ignore_words_raw, ignore_adverbs_raw, normalize, filter_adverbs
+        text, ceiling, ignore_words_raw, ignore_adverbs_raw, ignore_filters_raw,
+        normalize, filter_adverbs,
     )
-    flagged, adverbs = _lists(result)
-    return to_html(result.segments), flagged, adverbs, result.segments
+    flagged, adverbs, filters = _lists(result)
+    return to_html(result.segments), flagged, adverbs, filters, result.segments
 
 
 def _show_highlight(word: str | None, segments):
@@ -171,6 +180,15 @@ def build_demo() -> gr.Blocks:
                         )
                         adverb_html = gr.HTML()
 
+                    with gr.TabItem("Filter words"):
+                        ignore_filters = gr.Textbox(
+                            label="Ignore filter words",
+                            lines=1,
+                            placeholder="word1, word2, …",
+                            elem_id="ds-ignore-filters",
+                        )
+                        filter_html = gr.HTML()
+
         with gr.Row(elem_id="ds-text-wrap"):
             ds_text = gr.Textbox(elem_id="ds-text", value=config.SAMPLE_TEXT)
         with gr.Row(elem_id="ds-sel-wrap"):
@@ -181,10 +199,11 @@ def build_demo() -> gr.Blocks:
             ceiling,
             ignore_words,
             ignore_adverbs,
+            ignore_filters,
             normalize,
             filter_adverbs,
         ]
-        list_outputs = [flagged_html, adverb_html, segments_state]
+        list_outputs = [flagged_html, adverb_html, filter_html, segments_state]
 
         for component in analysis_inputs:
             component.change(_analyze, analysis_inputs, list_outputs)

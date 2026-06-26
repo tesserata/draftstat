@@ -28,6 +28,7 @@ class Flagged:
 class AnalysisResult:
     flagged: list[Flagged]
     adverbs: list[tuple[str, int]]
+    filters: list[tuple[str, int]]
     segments: list[tuple[str, str | None]]
 
 
@@ -48,6 +49,7 @@ def _tally(text: str, normalize: bool):
 
     counts: Counter[str] = Counter()
     adverb_counts: Counter[str] = Counter()
+    filter_counts: Counter[str] = Counter()
     for token in doc:
         if not token.is_alpha:
             continue
@@ -57,14 +59,16 @@ def _tally(text: str, normalize: bool):
         counts[key] += 1
         if token.pos_ == "ADV":
             adverb_counts[key] += 1
+        if token.lemma_.lower() in config.FILTER_WORDS:
+            filter_counts[key] += 1
 
     segments = to_segments(doc, normalize=normalize)
-    return counts, adverb_counts, segments
+    return counts, adverb_counts, filter_counts, segments
 
 
 @lru_cache(maxsize=8)
 def _ranked(text: str, normalize: bool, ceiling: float):
-    counts, adverb_counts, segments = _tally(text, normalize)
+    counts, adverb_counts, filter_counts, segments = _tally(text, normalize)
 
     flagged: list[Flagged] = []
     for word, count in counts.items():
@@ -81,7 +85,8 @@ def _ranked(text: str, normalize: bool, ceiling: float):
     flagged.sort(key=lambda f: (f.count, f.score), reverse=True)
 
     adverbs_full = sorted(adverb_counts.items(), key=lambda x: x[1], reverse=True)
-    return flagged, adverbs_full, segments
+    filters_full = sorted(filter_counts.items(), key=lambda x: x[1], reverse=True)
+    return flagged, adverbs_full, filters_full, segments
 
 
 def analyze(
@@ -89,10 +94,11 @@ def analyze(
     ceiling: float = config.DEFAULT_CEILING,
     ignore_words: frozenset[str] = frozenset(),
     ignore_adverbs: frozenset[str] = frozenset(),
+    ignore_filters: frozenset[str] = frozenset(),
     normalize: bool = True,
     filter_adverbs: bool = True,
 ) -> AnalysisResult:
-    flagged_full, adverbs_full, segments = _ranked(
+    flagged_full, adverbs_full, filters_full, segments = _ranked(
         text or "", normalize, float(ceiling)
     )
 
@@ -102,4 +108,7 @@ def analyze(
         for w, c in adverbs_full
         if w not in ignore_adverbs and (not filter_adverbs or w.endswith("ly"))
     ]
-    return AnalysisResult(flagged=flagged, adverbs=adverbs, segments=segments)
+    filters = [(w, c) for w, c in filters_full if w not in ignore_filters]
+    return AnalysisResult(
+        flagged=flagged, adverbs=adverbs, filters=filters, segments=segments
+    )

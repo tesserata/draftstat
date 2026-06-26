@@ -6,6 +6,15 @@ MIN_COUNT = 2
 
 SELECTED_COLOR = "#f0c040"
 
+FILTER_WORDS = frozenset({
+    "see", "hear", "feel", "watch", "look", "notice", "observe", "witness",
+    "perceive", "sense", "smell", "taste", "sound",
+    "think", "wonder", "realize", "realise", "know", "remember", "recall",
+    "decide", "consider", "believe", "suppose", "assume", "imagine", "expect",
+    "seem", "appear", "wish", "want", "experience", "touch", "note", "ponder",
+    "understand",
+})
+
 SAMPLE_TEXT = """They that have power to hurt and will do none,
 That do not do the thing they most do show,
 Who moving others are themselves as stone,
