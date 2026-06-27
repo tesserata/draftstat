@@ -59,8 +59,13 @@ def _lists(result):
 
 
 def _compute(
-    text, ceiling, ignore_words_raw, ignore_adverbs_raw, ignore_filters_raw,
-    normalize, filter_adverbs,
+    text,
+    ceiling,
+    ignore_words_raw,
+    ignore_adverbs_raw,
+    ignore_filters_raw,
+    normalize,
+    filter_adverbs,
 ):
     return analyze(
         text or "",
@@ -74,24 +79,44 @@ def _compute(
 
 
 def _analyze(
-    text, ceiling, ignore_words_raw, ignore_adverbs_raw, ignore_filters_raw,
-    normalize, filter_adverbs,
+    text,
+    ceiling,
+    ignore_words_raw,
+    ignore_adverbs_raw,
+    ignore_filters_raw,
+    normalize,
+    filter_adverbs,
 ):
     result = _compute(
-        text, ceiling, ignore_words_raw, ignore_adverbs_raw, ignore_filters_raw,
-        normalize, filter_adverbs,
+        text,
+        ceiling,
+        ignore_words_raw,
+        ignore_adverbs_raw,
+        ignore_filters_raw,
+        normalize,
+        filter_adverbs,
     )
     flagged, adverbs, filters = _lists(result)
     return flagged, adverbs, filters, result.segments
 
 
 def _load(
-    text, ceiling, ignore_words_raw, ignore_adverbs_raw, ignore_filters_raw,
-    normalize, filter_adverbs,
+    text,
+    ceiling,
+    ignore_words_raw,
+    ignore_adverbs_raw,
+    ignore_filters_raw,
+    normalize,
+    filter_adverbs,
 ):
     result = _compute(
-        text, ceiling, ignore_words_raw, ignore_adverbs_raw, ignore_filters_raw,
-        normalize, filter_adverbs,
+        text,
+        ceiling,
+        ignore_words_raw,
+        ignore_adverbs_raw,
+        ignore_filters_raw,
+        normalize,
+        filter_adverbs,
     )
     flagged, adverbs, filters = _lists(result)
     return to_html(result.segments), flagged, adverbs, filters, result.segments
@@ -107,16 +132,16 @@ THEME = gr.themes.Ocean()
 
 def build_demo() -> gr.Blocks:
     with gr.Blocks(title="DraftStat") as demo:
-        gr.Markdown("# DraftStat\nAnalyze word frequency against actual rarity.")
+        gr.Markdown("# DraftStat")
 
         segments_state = gr.State([])
 
         with gr.Row():
-            with gr.Column(scale=3):
+            with gr.Column(scale=5):
                 gr.Markdown("Your writing goes below")
                 manuscript = gr.HTML()
 
-            with gr.Column(scale=1):
+            with gr.Column(scale=2):
                 with gr.Tabs():
                     with gr.TabItem("Word frequency"):
                         normalize = gr.Checkbox(
